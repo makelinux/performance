@@ -17,12 +17,14 @@
 #include <math.h>
 #include <float.h>
 
+// TODO: used gsl_stats_tss or gsl_stats_sd, realloc
+
 static double timespec_diff(struct timespec start, struct timespec end)
 {
 	return (double)(end.tv_sec - start.tv_sec) + 1E-9 * (end.tv_nsec - start.tv_nsec) ;
 }
 
-size_t size = 128 << 10;
+size_t size = 128 << 10; // = 128 MB, 1 = KB
 static int quiet;
 static int batch;
 static int accuracy = INT_MAX;
@@ -54,6 +56,8 @@ static int optnum;
 
 int options_init()
 {
+	if (optnum + 1 > sizeof (options) / sizeof ((options)[0]))
+		return -1;
 	memset(options, 0, sizeof(options));
 	add_number_option(size, "size of synced block in KB, default is 128 MB");
 	add_number_option(count, "number of blocks");
@@ -83,11 +87,11 @@ int expand_arg(char *arg)
 	return strtol(arg, NULL, 0);
 }
 
-// realloc
 int init(int argc, char *argv[])
 {
 	int opt = 0;
 	int longindex = 0;
+
 	options_init();
 	opterr = 0;
 	while ((opt = getopt_long(argc, argv, "h", options, &longindex)) != -1) {
