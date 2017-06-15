@@ -122,6 +122,24 @@ int init(int argc, char *argv[])
 	return 0;
 }
 
+int print_result(double mean, double stdev)
+{
+	if (!batch)
+		printf("mean=");
+	printf("%d", (int)round(mean));
+	if (!batch)
+		printf(" KB/s");
+	printf("\n");
+	if (stdev != DBL_MAX) {
+		if (!batch)
+			fprintf(stderr, "stdev=");
+		fprintf(stderr, "%d", (int)round(stdev));
+		if (!batch)
+			fprintf(stderr, " KB/s");
+		fprintf(stderr, "\n");
+	}
+}
+
 int measure(char * dest, double * mean, double * stdev)
 {
 	struct timespec start, prev;
@@ -129,6 +147,8 @@ int measure(char * dest, double * mean, double * stdev)
 	double T = 0, t;
 	void * buf;
 	int done = 0, i;
+	*mean = 0;
+	*stdev = DBL_MAX;
 
 	buf = malloc(size << 10);
 	assert(buf);
@@ -166,14 +186,6 @@ int measure(char * dest, double * mean, double * stdev)
 			if (!batch)
 				printf("KB/s, ");
 		}
-		if (!quiet || i + 1 == count) {
-			if (!batch)
-				printf("overall=");
-			printf("%d", (int)round(*mean));
-			if (!batch)
-				printf(" KB/s");
-			printf("\n");
-		}
 		assert(*mean <= max);
 		assert(*mean >= min);
 
@@ -185,14 +197,8 @@ int measure(char * dest, double * mean, double * stdev)
 			*stdev = (max - min) / 4 / sqrt(i);
 			if (count && (i + 1 >= count) && *stdev <= accuracy)
 				done = 1;
-			if (i > 0 && (!quiet || done)) {
-				if (!batch)
-					fprintf(stderr, "stdev=");
-				fprintf(stderr, "%d", (int)round(*stdev));
-				if (!batch)
-					fprintf(stderr, " KB/s");
-				fprintf(stderr, "\n");
-			}
+			if (!quiet)
+				print_result(*mean, *stdev);
 		}
 	}
 	close(tmpfile);
