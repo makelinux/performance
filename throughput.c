@@ -26,7 +26,7 @@ size_t size = 128 << 10;
 static int quiet;
 static int batch;
 static int accuracy = INT_MAX;
-static char * tmpname = "throughput.tmp";
+static char * tmpname[2] = { "throughput.tmp", NULL} ;
 static int count = 10;
 
 #define add_number_option(o, desc) do \
@@ -114,11 +114,11 @@ int init(int argc, char *argv[])
 		}
 	}
 	if (optind < argc)
-		tmpname = argv[optind];
+		tmpname[0] = argv[optind];
 	return 0;
 }
 
-int measure(char * tmpname, double * mean, double * stdev)
+int measure(char * dest, double * mean, double * stdev)
 {
 	struct timespec start, prev;
 	double min = DBL_MAX, max = 0;
@@ -129,7 +129,7 @@ int measure(char * tmpname, double * mean, double * stdev)
 	buf = malloc(size << 10);
 	assert(buf);
 	memset(buf, 0, size << 10);
-	int tmpfile = open(tmpname, O_WRONLY | O_CREAT | O_TRUNC, 0660);
+	int tmpfile = open(dest, O_WRONLY | O_CREAT | O_TRUNC, 0660);
 	check_errno();
 	assert(tmpfile > 0);
 	fallocate(tmpfile, 0, 0, size << 10);
@@ -194,7 +194,7 @@ int measure(char * tmpname, double * mean, double * stdev)
 	close(tmpfile);
 	check_errno();
 	free(buf);
-	unlink(tmpname);
+	unlink(dest);
 	check_errno();
 }
 
@@ -202,7 +202,7 @@ int main(int argc, char *argv[])
 {
 	double mean, stdev;
 	init(argc, argv);
-	measure(tmpname, &mean, &stdev);
+	measure(tmpname[0], &mean, &stdev);
 
 	return EXIT_SUCCESS;
 }
