@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/param.h>
@@ -10,12 +11,15 @@
 #include <getopt.h>
 #include <time.h>
 #include <string.h>
+#include <errno.h>
+#include <error.h>
 #include <assert.h>
 #include <math.h>
+#include <float.h>
 
-static intmax_t timespec_diff_nsec(struct timespec start, struct timespec end)
+static double timespec_diff(struct timespec start, struct timespec end)
 {
-	return (end.tv_sec - start.tv_sec) * (intmax_t)1E9 + (end.tv_nsec - start.tv_nsec);
+	return (double)(end.tv_sec - start.tv_sec) + 1E-9 * (end.tv_nsec - start.tv_nsec) ;
 }
 
 size_t size = 128 << 10;
@@ -34,6 +38,15 @@ static int count = 10;
 { options[optnum].name = n; \
 	options[optnum].flag = (void *)p; options[optnum].has_arg = 0; \
 	options[optnum].val = v; description[optnum] = desc; optnum++; } while (0)
+
+// error("errno = %d \"%s\"", errno, strerror(errno));
+#define check_errno() \
+do { \
+	if (errno) { \
+		error_at_line(0, errno, __FILE__, __LINE__, "%s", __func__); \
+		errno = 0; \
+	} \
+} while (0)
 
 static struct option options[100];
 static char * description[100];
@@ -70,6 +83,7 @@ int expand_arg(char *arg)
 	return strtol(arg, NULL, 0);
 }
 
+// realloc
 int init(int argc, char *argv[])
 {
 	int opt = 0;
@@ -104,69 +118,73 @@ int init(int argc, char *argv[])
 	return 0;
 }
 
-int main(int argc, char *argv[])
+int measure(char * tmpname, double * mean, double * stdev)
 {
-	int min = INT_MAX, max = 0, kbps;
 	struct timespec start, prev;
-	intmax_t T = 0, t;
+	double min = DBL_MAX, max = 0;
+	double T = 0, t;
 	void * buf;
 	int done = 0, i;
 
-	init(argc, argv);
 	buf = malloc(size << 10);
 	assert(buf);
 	memset(buf, 0, size << 10);
-
-	int tmpfile = open(tmpname, O_TRUNC | O_RDWR | O_CREAT, 0660);
+	int tmpfile = open(tmpname, O_WRONLY | O_CREAT | O_TRUNC, 0660);
+	check_errno();
 	assert(tmpfile > 0);
+	fallocate(tmpfile, 0, 0, size << 10);
+	errno = 0;  // clear and ignore possible error
+
 	clock_gettime(CLOCK_MONOTONIC, &start);
 
 	for (i = 0; !done; i++) {
 		struct timespec now;
-		int kbps_cur;
+		double kbps_cur;
 
 		clock_gettime(CLOCK_MONOTONIC, &prev);
 		pwrite(tmpfile, buf, size << 10, 0) + 1;
+		check_errno();
 		fdatasync(tmpfile); // do sync explicitly instead O_DSYNC
+		check_errno();
 		clock_gettime(CLOCK_MONOTONIC, &now);
-		t = timespec_diff_nsec(prev, now);
+		t = timespec_diff(prev, now);
 		T += t;
-		kbps_cur = round(1E9 * size / t);
+		kbps_cur = size / t;
 
 		min = MIN(min, kbps_cur);
 		max = MAX(max, kbps_cur);
 
-		kbps = round(1E9 * (i + 1) * size / T);
+		*mean = (i + 1) * size / T;
 		if (!quiet) {
 			if (!batch)
 				printf("cur=");
-			printf("%d ", kbps_cur);
+			printf("%d ", (int)round(kbps_cur));
 			if (!batch)
 				printf("KB/s, ");
 		}
 		if (!quiet || i + 1 == count) {
 			if (!batch)
 				printf("overall=");
-			printf("%d", kbps);
+			printf("%d", (int)round(*mean));
 			if (!batch)
 				printf(" KB/s");
 			printf("\n");
 		}
-		assert(kbps <= max);
-		assert(kbps >= min);
+		assert(*mean <= max);
+		assert(*mean >= min);
 
 		if (count == 1)
 			done = 1;
 		if (i > 0) {
 			// Accordingly Range rule for standard deviation
 			// and Standard error of the mean
-			int stdev = (max - min) / 4 / sqrt(i);
-			if (count && (i + 1 >= count) && stdev <= accuracy)
+			*stdev = (max - min) / 4 / sqrt(i);
+			if (count && (i + 1 >= count) && *stdev <= accuracy)
 				done = 1;
 			if (i > 0 && (!quiet || done)) {
 				if (!batch)
 					fprintf(stderr, "stdev=");
-				fprintf(stderr, "%d", stdev);
+				fprintf(stderr, "%d", (int)round(*stdev));
 				if (!batch)
 					fprintf(stderr, " KB/s");
 				fprintf(stderr, "\n");
@@ -174,7 +192,17 @@ int main(int argc, char *argv[])
 		}
 	}
 	close(tmpfile);
+	check_errno();
 	free(buf);
 	unlink(tmpname);
+	check_errno();
+}
+
+int main(int argc, char *argv[])
+{
+	double mean, stdev;
+	init(argc, argv);
+	measure(tmpname, &mean, &stdev);
+
 	return EXIT_SUCCESS;
 }
