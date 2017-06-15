@@ -38,3 +38,8 @@ echo Standard deviation of mean: ${a[1]}
 or
 
 mean=(./throughput 2> /dev/null)
+
+## Comparison mode
+
+When two arguments are given, the tools measures both throughputs and calculates
+range of change in precents, where 0% is no change.

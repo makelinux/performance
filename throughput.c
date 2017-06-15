@@ -103,7 +103,7 @@ int init(int argc, char *argv[])
 		case 'h':
 			printf("Throughput measurement utility\n"
 			       "Usage:\n"
-			       "\tthroughput <options> [testfile]\n"
+			       "\tthroughput <options> [testfile] [second test file for comparison]\n"
 			       "\n"
 			       "options:\n"
 			       "\n");
@@ -119,6 +119,8 @@ int init(int argc, char *argv[])
 	}
 	if (optind < argc)
 		tmpname[0] = argv[optind];
+	if (optind + 1 < argc)
+		tmpname[1] = argv[optind + 1];
 	return 0;
 }
 
@@ -210,9 +212,29 @@ int measure(char * dest, double * mean, double * stdev)
 
 int main(int argc, char *argv[])
 {
-	double mean, stdev;
+	double mean0, stdev0;
+	double mean1, stdev1;
 	init(argc, argv);
-	measure(tmpname[0], &mean, &stdev);
+	measure(tmpname[0], &mean0, &stdev0);
+	print_result(mean0, stdev0);
+	if (tmpname[1]) {
+		measure(tmpname[1], &mean1, &stdev1);
+		print_result(mean1, stdev1);
+
+		double change_stdev = 100 * sqrt(stdev0 * stdev0 + stdev1 * stdev1) / mean1;
+		if (!batch)
+			printf("change_min=");
+		printf("%d", (int)round(100*(mean1 - mean0) / mean0 - 2 * change_stdev));
+		if (!batch)
+			printf("%%");
+		printf("\n");
+		if (!batch)
+			printf("change_max=");
+		printf("%d", (int)round(100*(mean1 - mean0) / mean0 + 2 * change_stdev));
+		if (!batch)
+			printf("%%");
+		printf("\n");
+	}
 
 	return EXIT_SUCCESS;
 }
