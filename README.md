@@ -31,13 +31,13 @@ Option --batch prints only numbers in KB/s, ready for integer arithmetic
 
 Sample scripting usage:
 
-a=($(./throughput --quiet --batch 2>&1))
+a=($(throughput --quiet --batch 2>&1))
 echo Overall (mean) throughput: ${a[0]}
 echo Standard deviation of mean: ${a[1]}
 
 or
 
-mean=(./throughput 2> /dev/null)
+TP=(throughput --quiet --batch 2> /dev/null)
 
 ## Comparison mode
 
