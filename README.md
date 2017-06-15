@@ -30,14 +30,16 @@ Option --quiet suppresses intermediate data and gives only final results.
 Option --batch prints only numbers in KB/s, ready for integer arithmetic
 
 Sample scripting usage:
-
+```
 a=($(throughput --quiet --batch 2>&1))
 echo Overall (mean) throughput: ${a[0]}
 echo Standard deviation of mean: ${a[1]}
-
+```
 or
 
+```
 TP=(throughput --quiet --batch 2> /dev/null)
+```
 
 ## Comparison mode
 
