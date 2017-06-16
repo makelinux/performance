@@ -27,7 +27,7 @@ static double timespec_diff(struct timespec start, struct timespec end)
 size_t size = 128 << 10; // = 128 MB, 1 = KB
 static int quiet;
 static int batch;
-static int accuracy = INT_MAX;
+static int stdev_tollerance = INT_MAX;
 static char * tmpname[2] = { "throughput.tmp", NULL} ;
 static int count = 10;
 
@@ -61,7 +61,7 @@ int options_init()
 	memset(options, 0, sizeof(options));
 	add_number_option(size, "size of synced block in KB, default is 128 MB");
 	add_number_option(count, "number of blocks");
-	add_number_option(accuracy, "run till standard deviation is less than specified accuracy in KB/s");
+	add_number_option(stdev_tollerance, "run till standard deviation is less than specified stdev_tollerance in KB/s");
 	add_flag_option("quiet", &quiet, 1, "don't print intermediate results");
 	add_flag_option("batch", &batch, 1, "print only numbers in KB");
 	options[optnum].name = strdup("help");
@@ -197,7 +197,7 @@ int measure(char * dest, double * mean, double * stdev)
 			// Accordingly Range rule for standard deviation
 			// and Standard error of the mean
 			*stdev = (max - min) / 4 / sqrt(i);
-			if (count && (i + 1 >= count) && *stdev <= accuracy)
+			if (count && (i + 1 >= count) && *stdev <= stdev_tollerance)
 				done = 1;
 			if (!quiet)
 				print_result(*mean, *stdev);

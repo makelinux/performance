@@ -21,6 +21,8 @@ A = (max - min) / (4 * sqrt(N - 1))
 
 Accordingly Range rule for standard deviation and Standard error of the mean.
 
+With option stdev_tollerance, the tool runs till standard deviation is less than specified stdev_tollerance.
+
 ## Batch scripting friendly
 
 Intermediate and finale standard deviation are prints to stderr to
