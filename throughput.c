@@ -17,7 +17,7 @@
 #include <math.h>
 #include <float.h>
 
-// TODO: used gsl_stats_tss or gsl_stats_sd, realloc
+// TODO: use gsl_stats_tss or gsl_stats_sd, gsl_fit_linear, realloc
 
 static double timespec_diff(struct timespec start, struct timespec end)
 {
