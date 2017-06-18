@@ -18,6 +18,7 @@
 #include <float.h>
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
+#include <gsl/gsl_statistics_double.h>
 
 // TODO: use gsl_stats_tss or gsl_stats_sd, gsl_fit_linear, realloc
 
@@ -188,16 +189,21 @@ int measure(char * dest, double * mean, double * stdev)
 	assert(tmpfile > 0);
 	fallocate(tmpfile, 0, 0, size << 10);
 	errno = 0;  // clear and ignore possible error
+	double * data = NULL;
 
 	for (i = 0; !done; i++) {
 		double kbps_cur;
 		int ret;
+
 
 		ret = run_sample(tmpfile, &t);
 		assert(ret == (size << 10));
 
 		T += t;
 		kbps_cur = size / t;
+		data = realloc(data, sizeof(data[0]) * (i?1 << (size_t)(log2(i) + 1):0));
+		assert(data);
+		data[i] = kbps_cur;
 
 		min = MIN(min, kbps_cur);
 		max = MAX(max, kbps_cur);
@@ -214,13 +220,20 @@ int measure(char * dest, double * mean, double * stdev)
 		assert(*mean >= min);
 		if (selftest)
 			fprintf(stderr, "min = %.0f, max=%.0f, stdev_appr=%.0f ", min, max, (max - min) / 4);
-
 		if (count == 1)
 			done = 1;
 		if (i > 0) {
+			if (selftest) {
+				fprintf(stderr, "sqrt(gsl_stats_tss_m) = %.0f, sqrt(gsl_stats_variance_m)=%.0f ",
+					sqrt(gsl_stats_tss_m(data, 1, i + 1, *mean)/i),
+					gsl_stats_sd_m(data, 1, i + 1, *mean));
+			}
+
 			// Accordingly Range rule for standard deviation
-			// and Standard error of the mean
-			*stdev = (max - min) / 4 / sqrt(i);
+			// *stdev = (max - min) / 4 / sqrt(i);
+
+			// Accordingly and Standard error of the mean
+			*stdev = gsl_stats_sd_m(data, 1, i + 1, *mean) / sqrt(i);
 			if (count && (i + 1 >= count) && (100 * *stdev / *mean) <= stdev_percent)
 				done = 1;
 			if (selftest)
@@ -229,6 +242,7 @@ int measure(char * dest, double * mean, double * stdev)
 				print_result(*mean, *stdev);
 		}
 	}
+	free(data);
 	close(tmpfile);
 	check_errno();
 	free(buf);
