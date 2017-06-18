@@ -141,13 +141,28 @@ int print_result(double mean, double stdev)
 		fprintf(stderr, "\n");
 	}
 }
+static void * buf;
+
+int run_sample(int tmpfile, double * t)
+{
+	struct timespec start, prev;
+	struct timespec now;
+	int ret;
+
+	clock_gettime(CLOCK_MONOTONIC, &prev);
+	ret = pwrite(tmpfile, buf, size << 10, 0);
+	check_errno();
+	fdatasync(tmpfile); // do sync explicitly instead O_DSYNC
+	check_errno();
+	clock_gettime(CLOCK_MONOTONIC, &now);
+	*t = timespec_diff(prev, now);
+	return ret;
+}
 
 int measure(char * dest, double * mean, double * stdev)
 {
-	struct timespec start, prev;
 	double min = DBL_MAX, max = 0;
 	double T = 0, t;
-	void * buf;
 	int done = 0, i;
 	*mean = 0;
 	*stdev = DBL_MAX;
@@ -161,19 +176,13 @@ int measure(char * dest, double * mean, double * stdev)
 	fallocate(tmpfile, 0, 0, size << 10);
 	errno = 0;  // clear and ignore possible error
 
-	clock_gettime(CLOCK_MONOTONIC, &start);
-
 	for (i = 0; !done; i++) {
-		struct timespec now;
 		double kbps_cur;
+		int ret;
 
-		clock_gettime(CLOCK_MONOTONIC, &prev);
-		pwrite(tmpfile, buf, size << 10, 0) + 1;
-		check_errno();
-		fdatasync(tmpfile); // do sync explicitly instead O_DSYNC
-		check_errno();
-		clock_gettime(CLOCK_MONOTONIC, &now);
-		t = timespec_diff(prev, now);
+		ret = run_sample(tmpfile, &t);
+		assert(ret == (size << 10));
+
 		T += t;
 		kbps_cur = size / t;
 
