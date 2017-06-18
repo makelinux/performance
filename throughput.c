@@ -16,6 +16,8 @@
 #include <assert.h>
 #include <math.h>
 #include <float.h>
+#include <gsl/gsl_rng.h>
+#include <gsl/gsl_randist.h>
 
 // TODO: use gsl_stats_tss or gsl_stats_sd, gsl_fit_linear, realloc
 
@@ -25,11 +27,13 @@ static double timespec_diff(struct timespec start, struct timespec end)
 }
 
 size_t size = 128 << 10; // = 128 MB, 1 = KB
+static int selftest;
 static int quiet;
 static int batch;
 static int stdev_tollerance = INT_MAX;
 static char * tmpname[2] = { "throughput.tmp", NULL} ;
 static int count = 10;
+static gsl_rng *r;
 
 #define add_number_option(o, desc) do \
 { options[optnum].name = #o; \
@@ -64,6 +68,7 @@ int options_init()
 	add_number_option(stdev_tollerance, "run till standard deviation is less than specified stdev_tollerance in KB/s");
 	add_flag_option("quiet", &quiet, 1, "don't print intermediate results");
 	add_flag_option("batch", &batch, 1, "print only numbers in KB");
+	add_flag_option("selftest", &selftest, 1, "run internal test on generated data");
 	options[optnum].name = strdup("help");
 	options[optnum].val = 'h';
 	description[optnum] = "provide this help";
@@ -121,6 +126,8 @@ int init(int argc, char *argv[])
 		tmpname[0] = argv[optind];
 	if (optind + 1 < argc)
 		tmpname[1] = argv[optind + 1];
+	r = gsl_rng_alloc(gsl_rng_default);
+
 	return 0;
 }
 
@@ -148,6 +155,12 @@ int run_sample(int tmpfile, double * t)
 	struct timespec start, prev;
 	struct timespec now;
 	int ret;
+
+	if (selftest) {
+		// simulate TP = 100 MB/s, stdev = 10MB/s
+		*t = size / (1E5 + gsl_ran_gaussian(r, 1E4));
+		return size << 10;
+	}
 
 	clock_gettime(CLOCK_MONOTONIC, &prev);
 	ret = pwrite(tmpfile, buf, size << 10, 0);
@@ -199,6 +212,8 @@ int measure(char * dest, double * mean, double * stdev)
 		}
 		assert(*mean <= max);
 		assert(*mean >= min);
+		if (selftest)
+			fprintf(stderr, "min = %.0f, max=%.0f, stdev_appr=%.0f ", min, max, (max - min) / 4);
 
 		if (count == 1)
 			done = 1;

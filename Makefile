@@ -2,7 +2,7 @@ targets=throughput
 
 all: ${targets}
 
-LDLIBS+=-lm
+LDLIBS+=-lgsl -lgslcblas -lm
 
 CFLAGS+=-g -I.
 
