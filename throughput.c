@@ -26,7 +26,7 @@
 
 static double timespec_diff(struct timespec start, struct timespec end)
 {
-	return (double)(end.tv_sec - start.tv_sec) + 1E-9 * (end.tv_nsec - start.tv_nsec) ;
+	return (double)(end.tv_sec - start.tv_sec) + 1E-9 * (end.tv_nsec - start.tv_nsec);
 }
 
 size_t size = 128 << 10; // = 128 MB, 1 = KB
@@ -34,7 +34,7 @@ static int selftest;
 static int quiet;
 static int batch;
 static int stdev_percent = 10;
-static char * tmpname[2] = { "throughput.tmp", NULL} ;
+static char * tmpname[2] = { "throughput.tmp", NULL};
 static int count = 10;
 static gsl_rng *r;
 
@@ -197,7 +197,6 @@ int measure(char * dest, double * mean, double * mean_stdev)
 	for (i = 0; !done; i++) {
 		double kbps_cur;
 		int ret;
-
 
 		ret = run_sample(tmpfile, &t);
 		assert(ret == (size << 10));
