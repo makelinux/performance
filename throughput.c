@@ -19,8 +19,9 @@
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_statistics_double.h>
+#include <gsl/gsl_fit.h>
 
-// TODO: use gsl_stats_tss or gsl_stats_sd, gsl_fit_linear, realloc
+// TODO:
 
 static double timespec_diff(struct timespec start, struct timespec end)
 {
@@ -189,7 +190,7 @@ int measure(char * dest, double * mean, double * stdev)
 	assert(tmpfile > 0);
 	fallocate(tmpfile, 0, 0, size << 10);
 	errno = 0;  // clear and ignore possible error
-	double * data = NULL;
+	double * data = NULL, * timearray = NULL;
 
 	for (i = 0; !done; i++) {
 		double kbps_cur;
@@ -204,6 +205,8 @@ int measure(char * dest, double * mean, double * stdev)
 		data = realloc(data, sizeof(data[0]) * (i?1 << (size_t)(log2(i) + 1):0));
 		assert(data);
 		data[i] = kbps_cur;
+		timearray = realloc(timearray, sizeof(timearray[0]) * (i?1 << (size_t)(log2(i) + 1):0));
+		timearray[i]=i;
 
 		min = MIN(min, kbps_cur);
 		max = MAX(max, kbps_cur);
@@ -226,7 +229,12 @@ int measure(char * dest, double * mean, double * stdev)
 			if (selftest) {
 				fprintf(stderr, "sqrt(gsl_stats_tss_m) = %.0f, sqrt(gsl_stats_variance_m)=%.0f ",
 					sqrt(gsl_stats_tss_m(data, 1, i + 1, *mean)/i),
-					gsl_stats_sd_m(data, 1, i + 1, *mean));
+					sqrt(gsl_stats_variance_m(data, 1, i + 1, *mean)));
+			}
+			if (!quiet) {
+				double c0, c1, cov00, cov01, cov11, sumsq;
+				gsl_fit_linear(timearray, 1, data, 1, i + 1, &c0, &c1, &cov00, &cov01, &cov11, &sumsq);
+				fprintf(stderr, "c0=%.0f, c1=%0.f ", c0, c1);
 			}
 
 			// Accordingly Range rule for standard deviation
@@ -243,6 +251,7 @@ int measure(char * dest, double * mean, double * stdev)
 		}
 	}
 	free(data);
+	free(timearray);
 	close(tmpfile);
 	check_errno();
 	free(buf);
