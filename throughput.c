@@ -38,7 +38,7 @@ static char * tmpname[2] = { "throughput.tmp", NULL};
 static int count = 10;
 static gsl_rng *r;
 
-#define batch_print(out, f1, f2, args...) if (!batch) fprintf(out, f1, ##args); else fprintf(out, f2, ##args)
+#define batch_print(out, f1, f2, args...) do { if (!batch) fprintf(out, f1, ##args); else fprintf(out, f2, ##args); fflush(out);} while (0)
 
 #define add_number_option(o, desc) do \
 { options[optnum].name = #o; \
@@ -247,9 +247,10 @@ int main(int argc, char *argv[])
 	else {
 		measure(tmpname[1], &mean1, &stdev1);
 		double change_stdev = 100 * sqrt(pow(stdev0, 2) + pow(stdev1, 2)) / mean0;
-		batch_print(stdout, "delta=%.0f KB/s ", "%.0f\n", mean1 - mean0);
-		batch_print(stdout, "change_min=%.0f %% ", "%.0f ", 100*(mean1 - mean0) / mean0 - 2 * change_stdev);
-		batch_print(stdout, "change_max=%.0f %%\n", "%.0f\n", 100*(mean1 - mean0) / mean0 + 2 * change_stdev);
+		batch_print(stdout, "delta=%.0f KB/s\n", "%.0f\n", mean1 - mean0);
+		batch_print(stderr, "delta_stdev=%.0f KB/s\n", "%.0f\n", sqrt(pow(stdev0, 2) + pow(stdev1, 2)));
+		batch_print(stdout, "change=%.0f %%\n", "%.0f\n", 100*(mean1 - mean0) / mean0);
+		batch_print(stderr, "change_stdev=%.0f %%\n", "%.0f\n", change_stdev);
 	}
 
 	return EXIT_SUCCESS;
