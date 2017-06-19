@@ -4,7 +4,7 @@ all: ${targets}
 
 LDLIBS+=-lgsl -lgslcblas -lm
 
-CFLAGS+=-g -I.
+CFLAGS+=-g -I. -Wall
 
 install:
 	mkdir -p ${DESTDIR}/usr/bin

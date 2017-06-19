@@ -59,7 +59,7 @@ do { \
 
 static struct option options[100];
 static char * description[100];
-static int optnum;
+static size_t optnum;
 
 int options_init()
 {
@@ -81,9 +81,7 @@ int options_init()
 
 int print_options_description()
 {
-	int i;
-
-	for (i = 0; i < optnum; i ++)
+	for (size_t i = 0; i < optnum; i ++)
 		printf("\t--%s %s \n\t\t%s\n\n", options[i].name, options[i].has_arg ?"<n>": "", description[i]);
 	return 0;
 }
@@ -141,13 +139,14 @@ int print_result(double mean, double mean_stdev)
 
 	if (mean_stdev != DBL_MAX)
 		batch_print(stdout, "mean_stdev=%.0f %%\n", "%.0f\n", 100 * mean_stdev / mean);
+	return 0;
 }
+
 static void * buf;
 
 int run_sample(int tmpfile, double * t)
 {
-	struct timespec start, prev;
-	struct timespec now;
+	struct timespec prev, now;
 	int ret;
 
 	if (selftest) {
@@ -189,7 +188,7 @@ int measure(char * dest, double * mean, double * mean_stdev)
 		int ret;
 
 		ret = run_sample(tmpfile, &t);
-		assert(ret == (size << 10));
+		assert(ret == (int)(size << 10));
 
 		T += t;
 		kbps_cur = size / t;
@@ -199,9 +198,9 @@ int measure(char * dest, double * mean, double * mean_stdev)
 		max = MAX(max, kbps_cur);
 
 		*mean = (i + 1) * size / T;
-		const double median = gsl_rstat_median(rstat);
 
 /*
+		const double median = gsl_rstat_median(rstat);
 		rms = gsl_rstat_rms(rstat);
 		num = gsl_rstat_n(rstat);
 		double mean = gsl_rstat_mean(rstat);
@@ -231,6 +230,7 @@ int measure(char * dest, double * mean, double * mean_stdev)
 	free(buf);
 	unlink(dest);
 	check_errno();
+	return i;
 }
 
 int main(int argc, char *argv[])
