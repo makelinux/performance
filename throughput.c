@@ -134,20 +134,20 @@ int init(int argc, char *argv[])
 	return 0;
 }
 
-int print_result(double mean, double stdev)
+int print_result(double mean, double mean_stdev)
 {
 	if (!batch)
 		printf("mean=");
-	printf("%d", (int)round(mean));
+	printf("%.0f", mean);
 	if (!batch)
 		printf(" KB/s");
 	printf("\n");
-	if (stdev != DBL_MAX) {
+	if (mean_stdev != DBL_MAX) {
 		if (!batch)
-			fprintf(stderr, "stdev=");
-		fprintf(stderr, "%d", (int)round(stdev));
+			fprintf(stderr, "mean_stdev=");
+		fprintf(stderr, "%.0f", (100 * mean_stdev / mean));
 		if (!batch)
-			fprintf(stderr, " KB/s");
+			fprintf(stderr, "%% ");
 		fprintf(stderr, "\n");
 	}
 }
@@ -175,13 +175,13 @@ int run_sample(int tmpfile, double * t)
 	return ret;
 }
 
-int measure(char * dest, double * mean, double * stdev)
+int measure(char * dest, double * mean, double * mean_stdev)
 {
 	double min = DBL_MAX, max = 0;
 	double T = 0, t;
 	int done = 0, i;
 	*mean = 0;
-	*stdev = DBL_MAX;
+	*mean_stdev = DBL_MAX;
 
 	buf = malloc(size << 10);
 	assert(buf);
