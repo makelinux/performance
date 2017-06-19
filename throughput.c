@@ -20,8 +20,9 @@
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_statistics_double.h>
 #include <gsl/gsl_fit.h>
+#include <gsl/gsl_rstat.h>
 
-// TODO:
+// TODO: gsl_rstat_sd_mean
 
 static double timespec_diff(struct timespec start, struct timespec end)
 {
@@ -190,7 +191,7 @@ int measure(char * dest, double * mean, double * stdev)
 	assert(tmpfile > 0);
 	fallocate(tmpfile, 0, 0, size << 10);
 	errno = 0;  // clear and ignore possible error
-	double * data = NULL, * timearray = NULL;
+	gsl_rstat_workspace *rstat = gsl_rstat_alloc();
 
 	for (i = 0; !done; i++) {
 		double kbps_cur;
@@ -202,16 +203,24 @@ int measure(char * dest, double * mean, double * stdev)
 
 		T += t;
 		kbps_cur = size / t;
-		data = realloc(data, sizeof(data[0]) * (i?1 << (size_t)(log2(i) + 1):0));
-		assert(data);
-		data[i] = kbps_cur;
-		timearray = realloc(timearray, sizeof(timearray[0]) * (i?1 << (size_t)(log2(i) + 1):0));
-		timearray[i]=i;
+		gsl_rstat_add(kbps_cur, rstat);
 
 		min = MIN(min, kbps_cur);
 		max = MAX(max, kbps_cur);
 
 		*mean = (i + 1) * size / T;
+		const double median = gsl_rstat_median(rstat);
+
+/*
+		rms = gsl_rstat_rms(rstat);
+		num = gsl_rstat_n(rstat);
+		double mean = gsl_rstat_mean(rstat);
+		double var = gsl_rstat_variance(rstat);
+		double sd = gsl_rstat_sd(rstat);
+		double skew = gsl_rstat_skew(rstat);
+		double kurtosis = gsl_rstat_kurtosis(rstat);
+		gsl_rstat_reset(rstat);
+*/
 		if (!quiet) {
 			if (!batch)
 				printf("cur=");
@@ -225,33 +234,15 @@ int measure(char * dest, double * mean, double * stdev)
 			fprintf(stderr, "min = %.0f, max=%.0f, stdev_appr=%.0f ", min, max, (max - min) / 4);
 		if (count == 1)
 			done = 1;
-		if (i > 0) {
-			if (selftest) {
-				fprintf(stderr, "sqrt(gsl_stats_tss_m) = %.0f, sqrt(gsl_stats_variance_m)=%.0f ",
-					sqrt(gsl_stats_tss_m(data, 1, i + 1, *mean)/i),
-					sqrt(gsl_stats_variance_m(data, 1, i + 1, *mean)));
-			}
-			if (!quiet) {
-				double c0, c1, cov00, cov01, cov11, sumsq;
-				gsl_fit_linear(timearray, 1, data, 1, i + 1, &c0, &c1, &cov00, &cov01, &cov11, &sumsq);
-				fprintf(stderr, "c0=%.0f, c1=%0.f ", c0, c1);
-			}
-
-			// Accordingly Range rule for standard deviation
-			// *stdev = (max - min) / 4 / sqrt(i);
-
-			// Accordingly and Standard error of the mean
-			*stdev = gsl_stats_sd_m(data, 1, i + 1, *mean) / sqrt(i);
-			if (count && (i + 1 >= count) && (100 * *stdev / *mean) <= stdev_percent)
-				done = 1;
-			if (selftest)
-				fprintf(stderr, "error=%.0f %% ", (100 * *stdev / *mean));
-			if (!quiet)
-				print_result(*mean, *stdev);
-		}
+		if (!i)
+			continue;
+		*mean_stdev = gsl_rstat_sd_mean(rstat);
+		if (count && (i + 1 >= count) && (100 * *mean_stdev / *mean) <= stdev_percent)
+			done = 1;
+		if (!quiet)
+			print_result(*mean, *mean_stdev);
 	}
-	free(data);
-	free(timearray);
+	gsl_rstat_free(rstat);
 	close(tmpfile);
 	check_errno();
 	free(buf);
