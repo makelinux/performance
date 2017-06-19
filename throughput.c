@@ -224,14 +224,12 @@ int measure(char * dest, double * mean, double * mean_stdev)
 		if (!quiet) {
 			if (!batch)
 				printf("cur=");
-			printf("%d ", (int)round(kbps_cur));
+			printf("%.0f ", kbps_cur);
 			if (!batch)
 				printf("KB/s, ");
 		}
 		assert(*mean <= max);
 		assert(*mean >= min);
-		if (selftest)
-			fprintf(stderr, "min = %.0f, max=%.0f, stdev_appr=%.0f ", min, max, (max - min) / 4);
 		if (count == 1)
 			done = 1;
 		if (!i)
@@ -254,6 +252,7 @@ int main(int argc, char *argv[])
 {
 	double mean0, stdev0;
 	double mean1, stdev1;
+
 	init(argc, argv);
 	measure(tmpname[0], &mean0, &stdev0);
 	print_result(mean0, stdev0);
@@ -261,16 +260,18 @@ int main(int argc, char *argv[])
 		measure(tmpname[1], &mean1, &stdev1);
 		print_result(mean1, stdev1);
 
-		double change_stdev = 100 * sqrt(stdev0 * stdev0 + stdev1 * stdev1) / mean1;
+		double change_stdev = 100 * sqrt(pow(stdev0, 2) + pow(stdev1, 2)) / mean1;
+		if (!quiet)
+			printf("delta=%.0f ", mean1 - mean0);
 		if (!batch)
 			printf("change_min=");
-		printf("%d", (int)round(100*(mean1 - mean0) / mean0 - 2 * change_stdev));
+		printf("%.0f", 100*(mean1 - mean0) / mean0 - 2 * change_stdev);
 		if (!batch)
 			printf("%%");
 		printf("\n");
 		if (!batch)
 			printf("change_max=");
-		printf("%d", (int)round(100*(mean1 - mean0) / mean0 + 2 * change_stdev));
+		printf("%.0f", 100*(mean1 - mean0) / mean0 + 2 * change_stdev);
 		if (!batch)
 			printf("%%");
 		printf("\n");
