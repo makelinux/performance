@@ -7,7 +7,7 @@ Motivation:
 * dd is too simple and not scripting friendly
 * fio is too complex and not scripting friendly too
 * The accuracy of results is unknown.
-* And it is need waste a lot of time to run utilities to achieve reliable results.
+* And it is need to waste a lot of time to run utilities to achieve reliable results.
 
 **Features:**
 
