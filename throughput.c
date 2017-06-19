@@ -38,6 +38,8 @@ static char * tmpname[2] = { "throughput.tmp", NULL};
 static int count = 10;
 static gsl_rng *r;
 
+#define batch_print(out, f1, f2, args...) if (!batch) fprintf(out, f1, ##args); else fprintf(out, f2, ##args)
+
 #define add_number_option(o, desc) do \
 { options[optnum].name = #o; \
 	options[optnum].flag = (void *)&o; options[optnum].has_arg = 1; \
@@ -137,20 +139,10 @@ int init(int argc, char *argv[])
 
 int print_result(double mean, double mean_stdev)
 {
-	if (!batch)
-		printf("mean=");
-	printf("%.0f", mean);
-	if (!batch)
-		printf(" KB/s");
-	printf("\n");
-	if (mean_stdev != DBL_MAX) {
-		if (!batch)
-			fprintf(stderr, "mean_stdev=");
-		fprintf(stderr, "%.0f", (100 * mean_stdev / mean));
-		if (!batch)
-			fprintf(stderr, "%% ");
-		fprintf(stderr, "\n");
-	}
+	batch_print(stdout, "mean=%.0f KB/s\n", "%.0f\n", mean);
+
+	if (mean_stdev != DBL_MAX)
+		batch_print(stdout, "mean_stdev=%.0f %%\n", "%.0f\n", 100 * mean_stdev / mean);
 }
 static void * buf;
 
@@ -221,13 +213,8 @@ int measure(char * dest, double * mean, double * mean_stdev)
 		double kurtosis = gsl_rstat_kurtosis(rstat);
 		gsl_rstat_reset(rstat);
 */
-		if (!quiet) {
-			if (!batch)
-				printf("cur=");
-			printf("%.0f ", kbps_cur);
-			if (!batch)
-				printf("KB/s, ");
-		}
+		if (!quiet)
+			batch_print(stdout, "cur=%.0f KB/s\n", "%.0f\n", kbps_cur);
 		assert(*mean <= max);
 		assert(*mean >= min);
 		if (count == 1)
@@ -255,26 +242,14 @@ int main(int argc, char *argv[])
 
 	init(argc, argv);
 	measure(tmpname[0], &mean0, &stdev0);
-	print_result(mean0, stdev0);
-	if (tmpname[1]) {
+	if (!tmpname[1])
+		print_result(mean0, stdev0);
+	else {
 		measure(tmpname[1], &mean1, &stdev1);
-		print_result(mean1, stdev1);
-
-		double change_stdev = 100 * sqrt(pow(stdev0, 2) + pow(stdev1, 2)) / mean1;
-		if (!quiet)
-			printf("delta=%.0f ", mean1 - mean0);
-		if (!batch)
-			printf("change_min=");
-		printf("%.0f", 100*(mean1 - mean0) / mean0 - 2 * change_stdev);
-		if (!batch)
-			printf("%%");
-		printf("\n");
-		if (!batch)
-			printf("change_max=");
-		printf("%.0f", 100*(mean1 - mean0) / mean0 + 2 * change_stdev);
-		if (!batch)
-			printf("%%");
-		printf("\n");
+		double change_stdev = 100 * sqrt(pow(stdev0, 2) + pow(stdev1, 2)) / mean0;
+		batch_print(stdout, "delta=%.0f KB/s ", "%.0f\n", mean1 - mean0);
+		batch_print(stdout, "change_min=%.0f %% ", "%.0f ", 100*(mean1 - mean0) / mean0 - 2 * change_stdev);
+		batch_print(stdout, "change_max=%.0f %%\n", "%.0f\n", 100*(mean1 - mean0) / mean0 + 2 * change_stdev);
 	}
 
 	return EXIT_SUCCESS;
