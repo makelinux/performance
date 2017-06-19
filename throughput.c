@@ -129,6 +129,7 @@ int init(int argc, char *argv[])
 		tmpname[0] = argv[optind];
 	if (optind + 1 < argc)
 		tmpname[1] = argv[optind + 1];
+	gsl_rng_default_seed = time(NULL);
 	r = gsl_rng_alloc(gsl_rng_default);
 
 	return 0;
