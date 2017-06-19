@@ -9,23 +9,22 @@ Motivation:
 * The accuracy of results is unknown.
 * And it is need waste a lot of time to run utilities to achieve reliable results.
 
+**Features:**
+
 ## Simplicity
 
 Simple command line interface, simple usage and simple implementation on C.
 
 ## Reliability
 
-Calculates accuracy estimation by formula:
-
-A = (max - min) / (4 * sqrt(N - 1))
-
-Accordingly Range rule for standard deviation and Standard error of the mean.
-
-With option stdev_tollerance, the tool runs till standard deviation is less than specified stdev_tollerance.
+Calculates standard deviation of mean with function gsl_rstat_sd_mean from
+GNU Scientific Library. The measurements continues till standard deviation is
+less than specified stdev_percent in percents from the mean value.
+The default value of stdev_percent is 10%.
 
 ## Batch scripting friendly
 
-Intermediate and finale standard deviation are prints to stderr to
+Intermediate and final standard deviation are printed to stderr to
 simplify usage of throughput results.
 
 Option --quiet suppresses intermediate data and gives only final results.
@@ -46,4 +45,4 @@ TP=(throughput --quiet --batch 2> /dev/null)
 ## Comparison mode
 
 When two arguments are given, the tools measures both throughputs and calculates
-range of change in precents, where 0% is no change.
+absolute and percents change.

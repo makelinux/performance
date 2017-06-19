@@ -22,8 +22,6 @@
 #include <gsl/gsl_fit.h>
 #include <gsl/gsl_rstat.h>
 
-// TODO: gsl_rstat_sd_mean
-
 static double timespec_diff(struct timespec start, struct timespec end)
 {
 	return (double)(end.tv_sec - start.tv_sec) + 1E-9 * (end.tv_nsec - start.tv_nsec);
@@ -70,7 +68,7 @@ int options_init()
 	memset(options, 0, sizeof(options));
 	add_number_option(size, "size of synced block in KB, default is 128 MB");
 	add_number_option(count, "number of blocks");
-	add_number_option(stdev_percent, "run till standard deviation is less than specified stdev_percent in %% from mean value");
+	add_number_option(stdev_percent, "run till standard deviation is less than specified stdev_percent in \% from the mean value, default=10");
 	add_flag_option("quiet", &quiet, 1, "don't print intermediate results");
 	add_flag_option("batch", &batch, 1, "print only numbers in KB");
 	add_flag_option("selftest", &selftest, 1, "run internal test on generated data");
