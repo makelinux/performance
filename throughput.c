@@ -81,7 +81,9 @@ int options_init()
 
 int print_options_description()
 {
-	for (size_t i = 0; i < optnum; i ++)
+	size_t i;
+
+	for (i = 0; i < optnum; i ++)
 		printf("\t--%s %s \n\t\t%s\n\n", options[i].name, options[i].has_arg ?"<n>": "", description[i]);
 	return 0;
 }
@@ -179,8 +181,6 @@ int measure(char * dest, double * mean, double * mean_stdev)
 	int tmpfile = open(dest, O_WRONLY | O_CREAT | O_TRUNC, 0660);
 	check_errno();
 	assert(tmpfile > 0);
-	fallocate(tmpfile, 0, 0, size << 10);
-	errno = 0;  // clear and ignore possible error
 	gsl_rstat_workspace *rstat = gsl_rstat_alloc();
 
 	for (i = 0; !done; i++) {
