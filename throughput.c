@@ -169,7 +169,6 @@ int run_sample(int tmpfile, double * t)
 
 int measure(char * dest, double * mean, double * mean_stdev)
 {
-	double min = DBL_MAX, max = 0;
 	double T = 0, t;
 	int done = 0, i;
 	*mean = 0;
@@ -193,10 +192,6 @@ int measure(char * dest, double * mean, double * mean_stdev)
 		T += t;
 		kbps_cur = size / t;
 		gsl_rstat_add(kbps_cur, rstat);
-
-		min = MIN(min, kbps_cur);
-		max = MAX(max, kbps_cur);
-
 		*mean = (i + 1) * size / T;
 
 /*
@@ -212,8 +207,6 @@ int measure(char * dest, double * mean, double * mean_stdev)
 */
 		if (!quiet)
 			batch_print(stdout, "cur=%.0f KB/s\n", "%.0f\n", kbps_cur);
-		assert(*mean <= max);
-		assert(*mean >= min);
 		if (count == 1)
 			done = 1;
 		if (!i)
