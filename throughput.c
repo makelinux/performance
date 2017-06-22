@@ -193,18 +193,6 @@ int measure(char * dest, double * mean, double * mean_stdev)
 		kbps_cur = size / t;
 		gsl_rstat_add(kbps_cur, rstat);
 		*mean = (i + 1) * size / T;
-
-/*
-		const double median = gsl_rstat_median(rstat);
-		rms = gsl_rstat_rms(rstat);
-		num = gsl_rstat_n(rstat);
-		double mean = gsl_rstat_mean(rstat);
-		double var = gsl_rstat_variance(rstat);
-		double sd = gsl_rstat_sd(rstat);
-		double skew = gsl_rstat_skew(rstat);
-		double kurtosis = gsl_rstat_kurtosis(rstat);
-		gsl_rstat_reset(rstat);
-*/
 		if (!quiet)
 			batch_print(stdout, "cur=%.0f KB/s\n", "%.0f\n", kbps_cur);
 		if (count == 1)
