@@ -2,7 +2,7 @@ targets=throughput
 
 all: ${targets}
 
-LDLIBS+=-lgsl -lgslcblas -lm
+LDLIBS+=-lgsl -lgslcblas -lm -lpthread
 
 CFLAGS+=-g -I. -Wall
 

@@ -2,6 +2,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/param.h>
+#include <sys/types.h>
 #include <inttypes.h>
 #include <limits.h>
 #include <fcntl.h>
@@ -21,6 +22,7 @@
 #include <gsl/gsl_statistics_double.h>
 #include <gsl/gsl_fit.h>
 #include <gsl/gsl_rstat.h>
+#include <pthread.h>
 
 static double timespec_diff(struct timespec start, struct timespec end)
 {
@@ -35,6 +37,7 @@ static int stdev_percent = 10;
 static char * tmpname[2] = { "throughput.tmp", NULL};
 static int count = 10;
 static gsl_rng *r;
+static int threads;
 
 #define batch_print(out, f1, f2, args...) do { if (!batch) fprintf(out, f1, ##args); else fprintf(out, f2, ##args); fflush(out);} while (0)
 
@@ -53,6 +56,7 @@ static gsl_rng *r;
 do { \
 	if (errno) { \
 		error_at_line(0, errno, __FILE__, __LINE__, "%s", __func__); \
+		fflush(stderr); \
 		errno = 0; \
 	} \
 } while (0)
@@ -69,6 +73,8 @@ int options_init()
 	add_number_option(size, "size of synced block in KB, default is 128 MB");
 	add_number_option(count, "number of blocks");
 	add_number_option(stdev_percent, "run till standard deviation is less than specified stdev_percent in \% from the mean value, default=10");
+	add_number_option(threads, "run number of threads concurrently");
+
 	add_flag_option("quiet", &quiet, 1, "don't print intermediate results");
 	add_flag_option("batch", &batch, 1, "print only numbers in KB");
 	add_flag_option("selftest", &selftest, 1, "run internal test on generated data");
@@ -208,6 +214,7 @@ int measure_do(struct measure * m)
 		ret = run_sample(tmpfile, &t);
 		assert(ret == (int)(size << 10));
 
+		// TODO: lock
 		m->T += t;
 		kbps_cur = size / t;
 		gsl_rstat_add(kbps_cur, m->rstat);
@@ -234,9 +241,25 @@ int measure_do(struct measure * m)
 int measure_run(struct measure * m)
 {
 	int ret;
+	int t;
+	void *res;
 
 	measure_init(m);
-	ret = measure_do(m);
+	pthread_t * pt;
+	pt = calloc(threads, sizeof(pthread_t));
+	if (!threads)
+		ret = measure_do(m);
+	else {
+		for (t = 0; t < threads; t++) {
+			errno = pthread_create(&pt[t], NULL, (void*)&measure_do, m);
+			check_errno();
+		}
+		for (t = 0; t < threads; t++) {
+			errno = pthread_join(pt[t], &res);
+			check_errno();
+		}
+	}
+	free(pt);
 	measure_done(m);
 
 	return ret;
