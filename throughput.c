@@ -214,6 +214,8 @@ int measure(struct measure * m)
 		if (!quiet)
 			print_result(m);
 	}
+	if (selftest && !quiet && !batch)
+		printf("stdev=%.0f KB/s\n", gsl_rstat_sd(m->rstat));
 	gsl_rstat_free(m->rstat);
 	close(tmpfile);
 	check_errno();
@@ -234,6 +236,8 @@ int main(int argc, char *argv[])
 		print_result(&m[0]);
 	} else {
 		m[1].dest = tmpname[1];
+		if (!quiet)
+			printf("\n");
 		measure(&m[1]);
 		double change_stdev = 100 * sqrt(pow(m[0].mean_stdev, 2) + pow(m[1].mean_stdev, 2)) / m[0].mean;
 		batch_print(stdout, "delta=%.0f KB/s\n", "%.0f\n", m[1].mean - m[0].mean);
