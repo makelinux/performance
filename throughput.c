@@ -147,6 +147,7 @@ struct measure {
 	double mean_stdev;
 	gsl_rstat_workspace *rstat;
 	double T;
+	pthread_mutex_t lock;
 };
 
 int print_result(struct measure * m)
@@ -187,6 +188,7 @@ int measure_init(struct measure * m)
 	m->mean_stdev = DBL_MAX;
 	m->rstat = gsl_rstat_alloc();
 	m->T = 0;
+	pthread_mutex_init(&m->lock, NULL);
 	return 0;
 }
 
@@ -214,7 +216,7 @@ int measure_do(struct measure * m)
 		ret = run_sample(tmpfile, &t);
 		assert(ret == (int)(size << 10));
 
-		// TODO: lock
+		pthread_mutex_lock(&m->lock);
 		m->T += t;
 		kbps_cur = size / t;
 		gsl_rstat_add(kbps_cur, m->rstat);
@@ -223,6 +225,7 @@ int measure_do(struct measure * m)
 			batch_print(stdout, "cur=%.0f KB/s\n", "%.0f\n", kbps_cur);
 		if (count == 1)
 			done = 1;
+		pthread_mutex_unlock(&m->lock);
 		if (!i)
 			continue;
 		m->mean_stdev = gsl_rstat_sd_mean(m->rstat);
