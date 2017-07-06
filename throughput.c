@@ -197,9 +197,6 @@ int measure_do(struct measure * m)
 	double t;
 	int done = 0, i;
 
-	buf = malloc(size << 10);
-	assert(buf);
-	memset(buf, 0, size << 10);
 	int tmpfile = open(m->dest, O_WRONLY | O_CREAT | O_TRUNC, 0660);
 	check_errno();
 	assert(tmpfile > 0);
@@ -229,7 +226,6 @@ int measure_do(struct measure * m)
 	}
 	close(tmpfile);
 	check_errno();
-	free(buf);
 	unlink(m->dest);
 	check_errno();
 	return i;
@@ -251,6 +247,9 @@ int main(int argc, char *argv[])
 	struct measure m[2];
 
 	init(argc, argv);
+	buf = malloc(size << 10);
+	assert(buf);
+	memset(buf, 0, size << 10);
 	m[0].dest = tmpname[0];
 	measure_run(&m[0]);
 	if (!tmpname[1]) {
@@ -267,5 +266,6 @@ int main(int argc, char *argv[])
 		batch_print(stderr, "change_stdev=%.0f %%\n", "%.0f\n", change_stdev);
 	}
 
+	free(buf);
 	return EXIT_SUCCESS;
 }
