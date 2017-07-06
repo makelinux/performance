@@ -139,6 +139,8 @@ struct measure {
 	char * dest;
 	double mean;
 	double mean_stdev;
+	gsl_rstat_workspace *rstat;
+	double T;
 };
 
 int print_result(struct measure * m)
@@ -175,7 +177,7 @@ int run_sample(int tmpfile, double * t)
 
 int measure(struct measure * m)
 {
-	double T = 0, t;
+	double t;
 	int done = 0, i;
 	m->mean = 0;
 	m->mean_stdev = DBL_MAX;
@@ -186,7 +188,8 @@ int measure(struct measure * m)
 	int tmpfile = open(m->dest, O_WRONLY | O_CREAT | O_TRUNC, 0660);
 	check_errno();
 	assert(tmpfile > 0);
-	gsl_rstat_workspace *rstat = gsl_rstat_alloc();
+	m->rstat = gsl_rstat_alloc();
+	m->T = 0;
 
 	for (i = 0; !done; i++) {
 		double kbps_cur;
@@ -195,23 +198,23 @@ int measure(struct measure * m)
 		ret = run_sample(tmpfile, &t);
 		assert(ret == (int)(size << 10));
 
-		T += t;
+		m->T += t;
 		kbps_cur = size / t;
-		gsl_rstat_add(kbps_cur, rstat);
-		m->mean = (i + 1) * size / T;
+		gsl_rstat_add(kbps_cur, m->rstat);
+		m->mean = gsl_rstat_n(m->rstat) * size / m->T;
 		if (!quiet)
 			batch_print(stdout, "cur=%.0f KB/s\n", "%.0f\n", kbps_cur);
 		if (count == 1)
 			done = 1;
 		if (!i)
 			continue;
-		m->mean_stdev = gsl_rstat_sd_mean(rstat);
+		m->mean_stdev = gsl_rstat_sd_mean(m->rstat);
 		if (count && (i + 1 >= count) && (100 * m->mean_stdev / m->mean) <= stdev_percent)
 			done = 1;
 		if (!quiet)
 			print_result(m);
 	}
-	gsl_rstat_free(rstat);
+	gsl_rstat_free(m->rstat);
 	close(tmpfile);
 	check_errno();
 	free(buf);
