@@ -48,4 +48,4 @@ When two arguments are given, the tools measures both throughputs and calculates
 absolute and percents change.
 
 ## Other features
-* Multithreaded mode
+* Multithreaded mode - under development

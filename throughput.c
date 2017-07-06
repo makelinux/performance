@@ -73,7 +73,7 @@ int options_init()
 	add_number_option(size, "size of synced block in KB, default is 128 MB");
 	add_number_option(count, "number of blocks");
 	add_number_option(stdev_percent, "run till standard deviation is less than specified stdev_percent in \% from the mean value, default=10");
-	add_number_option(threads, "run number of threads concurrently");
+	add_number_option(threads, "run number of threads concurrently - under development");
 
 	add_flag_option("quiet", &quiet, 1, "don't print intermediate results");
 	add_flag_option("batch", &batch, 1, "print only numbers in KB");
