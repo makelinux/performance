@@ -135,12 +135,18 @@ int init(int argc, char *argv[])
 	return 0;
 }
 
-int print_result(double mean, double mean_stdev)
-{
-	batch_print(stdout, "mean=%.0f KB/s\n", "%.0f\n", mean);
+struct measure {
+	char * dest;
+	double mean;
+	double mean_stdev;
+};
 
-	if (mean_stdev != DBL_MAX)
-		batch_print(stdout, "mean_stdev=%.0f %%\n", "%.0f\n", 100 * mean_stdev / mean);
+int print_result(struct measure * m)
+{
+	batch_print(stdout, "mean=%.0f KB/s\n", "%.0f\n", m->mean);
+
+	if (m->mean_stdev != DBL_MAX)
+		batch_print(stdout, "mean_stdev=%.0f %%\n", "%.0f\n", 100 * m->mean_stdev / m->mean);
 	return 0;
 }
 
@@ -167,17 +173,17 @@ int run_sample(int tmpfile, double * t)
 	return ret;
 }
 
-int measure(char * dest, double * mean, double * mean_stdev)
+int measure(struct measure * m)
 {
 	double T = 0, t;
 	int done = 0, i;
-	*mean = 0;
-	*mean_stdev = DBL_MAX;
+	m->mean = 0;
+	m->mean_stdev = DBL_MAX;
 
 	buf = malloc(size << 10);
 	assert(buf);
 	memset(buf, 0, size << 10);
-	int tmpfile = open(dest, O_WRONLY | O_CREAT | O_TRUNC, 0660);
+	int tmpfile = open(m->dest, O_WRONLY | O_CREAT | O_TRUNC, 0660);
 	check_errno();
 	assert(tmpfile > 0);
 	gsl_rstat_workspace *rstat = gsl_rstat_alloc();
@@ -192,43 +198,44 @@ int measure(char * dest, double * mean, double * mean_stdev)
 		T += t;
 		kbps_cur = size / t;
 		gsl_rstat_add(kbps_cur, rstat);
-		*mean = (i + 1) * size / T;
+		m->mean = (i + 1) * size / T;
 		if (!quiet)
 			batch_print(stdout, "cur=%.0f KB/s\n", "%.0f\n", kbps_cur);
 		if (count == 1)
 			done = 1;
 		if (!i)
 			continue;
-		*mean_stdev = gsl_rstat_sd_mean(rstat);
-		if (count && (i + 1 >= count) && (100 * *mean_stdev / *mean) <= stdev_percent)
+		m->mean_stdev = gsl_rstat_sd_mean(rstat);
+		if (count && (i + 1 >= count) && (100 * m->mean_stdev / m->mean) <= stdev_percent)
 			done = 1;
 		if (!quiet)
-			print_result(*mean, *mean_stdev);
+			print_result(m);
 	}
 	gsl_rstat_free(rstat);
 	close(tmpfile);
 	check_errno();
 	free(buf);
-	unlink(dest);
+	unlink(m->dest);
 	check_errno();
 	return i;
 }
 
 int main(int argc, char *argv[])
 {
-	double mean0, stdev0;
-	double mean1, stdev1;
+	struct measure m[2];
 
 	init(argc, argv);
-	measure(tmpname[0], &mean0, &stdev0);
-	if (!tmpname[1])
-		print_result(mean0, stdev0);
-	else {
-		measure(tmpname[1], &mean1, &stdev1);
-		double change_stdev = 100 * sqrt(pow(stdev0, 2) + pow(stdev1, 2)) / mean0;
-		batch_print(stdout, "delta=%.0f KB/s\n", "%.0f\n", mean1 - mean0);
-		batch_print(stderr, "delta_stdev=%.0f KB/s\n", "%.0f\n", sqrt(pow(stdev0, 2) + pow(stdev1, 2)));
-		batch_print(stdout, "change=%.0f %%\n", "%.0f\n", 100*(mean1 - mean0) / mean0);
+	m[0].dest = tmpname[0];
+	measure(&m[0]);
+	if (!tmpname[1]) {
+		print_result(&m[0]);
+	} else {
+		m[1].dest = tmpname[1];
+		measure(&m[1]);
+		double change_stdev = 100 * sqrt(pow(m[0].mean_stdev, 2) + pow(m[1].mean_stdev, 2)) / m[0].mean;
+		batch_print(stdout, "delta=%.0f KB/s\n", "%.0f\n", m[1].mean - m[0].mean);
+		batch_print(stderr, "delta_stdev=%.0f KB/s\n", "%.0f\n", sqrt(pow(m[0].mean_stdev, 2) + pow(m[1].mean_stdev, 2)));
+		batch_print(stdout, "change=%.0f %%\n", "%.0f\n", 100*(m[1].mean - m[0].mean) / m[0].mean);
 		batch_print(stderr, "change_stdev=%.0f %%\n", "%.0f\n", change_stdev);
 	}
 
