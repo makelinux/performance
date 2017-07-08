@@ -227,7 +227,7 @@ int measure_do(struct measure * m)
 		m->T += t;
 		kbps_cur = size / t;
 		gsl_rstat_add(kbps_cur, m->rstat);
-		m->mean = gsl_rstat_n(m->rstat) * size / m->T;
+		m->mean = (threads ? : 1) * gsl_rstat_n(m->rstat) * size / m->T;
 		if (!quiet)
 			batch_print(stdout, "cur=%.0f KB/s\n", "%.0f\n", kbps_cur);
 		if (count == 1)
