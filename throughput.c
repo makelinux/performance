@@ -142,6 +142,7 @@ int init(int argc, char *argv[])
 }
 
 struct measure {
+	int i;
 	char * dest;
 	double mean;
 	double mean_stdev;
@@ -204,8 +205,14 @@ int measure_do(struct measure * m)
 {
 	double t;
 	int done = 0, i;
+	char fn[100];
 
-	int tmpfile = open(m->dest, O_WRONLY | O_CREAT | O_TRUNC, 0660);
+	pthread_mutex_lock(&m->lock);
+	m->i++;
+	pthread_mutex_unlock(&m->lock);
+
+	snprintf(fn, sizeof(fn), "%s-%03d", m->dest, m->i);
+	int tmpfile = open(fn, O_WRONLY | O_CREAT | O_TRUNC, 0660);
 	check_errno();
 	assert(tmpfile > 0);
 
@@ -236,7 +243,7 @@ int measure_do(struct measure * m)
 	}
 	close(tmpfile);
 	check_errno();
-	unlink(m->dest);
+	unlink(fn);
 	check_errno();
 	return i;
 }
@@ -270,7 +277,7 @@ int measure_run(struct measure * m)
 
 int main(int argc, char *argv[])
 {
-	struct measure m[2];
+	struct measure m[2] = {{0,},};
 
 	init(argc, argv);
 	buf = malloc(size << 10);
