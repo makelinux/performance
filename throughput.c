@@ -175,6 +175,7 @@ int run_sample(int tmpfile, double * t)
 
 	clock_gettime(CLOCK_MONOTONIC, &prev);
 	ret = pwrite(tmpfile, buf, size << 10, 0);
+	assert(ret == size << 10);
 	check_errno();
 	fdatasync(tmpfile); // do sync explicitly instead O_DSYNC
 	check_errno();
