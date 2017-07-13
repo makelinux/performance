@@ -33,6 +33,7 @@ size_t size = 128 << 10; // = 128 MB, 1 = KB
 static int selftest;
 static int quiet;
 static int batch;
+static int writing;
 static int stdev_percent = 10;
 static char * tmpname[2] = { "throughput.tmp", NULL};
 static int count = 10;
@@ -76,6 +77,7 @@ int options_init()
 	add_number_option(threads, "run number of threads concurrently");
 
 	add_flag_option("quiet", &quiet, 1, "don't print intermediate results");
+	add_flag_option("write", &writing, 1, "write mode, default is read");
 	add_flag_option("batch", &batch, 1, "print only numbers in KB");
 	add_flag_option("selftest", &selftest, 1, "run internal test on generated data");
 	options[optnum].name = strdup("help");
@@ -174,7 +176,10 @@ int run_sample(int tmpfile, double * t)
 	}
 
 	clock_gettime(CLOCK_MONOTONIC, &prev);
-	ret = pwrite(tmpfile, buf, size << 10, 0);
+	if (writing)
+		ret = pwrite(tmpfile, buf, size << 10, 0);
+	else
+		ret = pread(tmpfile, buf, size << 10, 0);
 	assert(ret == size << 10);
 	check_errno();
 	fdatasync(tmpfile); // do sync explicitly instead O_DSYNC
@@ -207,19 +212,26 @@ int measure_do(struct measure * m)
 	double t;
 	int done = 0, i;
 	char fn[100];
+	int ret;
 
 	pthread_mutex_lock(&m->lock);
 	m->i++;
 	pthread_mutex_unlock(&m->lock);
 
 	snprintf(fn, sizeof(fn), "%s-%03d", m->dest, m->i);
-	int tmpfile = open(fn, O_WRONLY | O_CREAT | O_TRUNC, 0660);
+
+	int tmpfile = open(fn, O_CREAT | O_RDWR | O_DIRECT, 0666);
 	check_errno();
 	assert(tmpfile > 0);
 
+	// write the same data to file, to preserve it
+	ret = pread(tmpfile, buf, size << 10, 0);
+	// if target file is too short, enlarge it
+	if (ret < size << 10)
+		pwrite(tmpfile, buf, size << 10, 0);
+
 	for (i = 0; !done; i++) {
 		double kbps_cur;
-		int ret;
 
 		ret = run_sample(tmpfile, &t);
 		assert(ret == (int)(size << 10));
@@ -281,7 +293,7 @@ int main(int argc, char *argv[])
 	struct measure m[2] = {{0,},};
 
 	init(argc, argv);
-	buf = malloc(size << 10);
+	buf = aligned_alloc(512, size << 10);
 	assert(buf);
 	memset(buf, 0, size << 10);
 	m[0].dest = tmpname[0];

@@ -47,4 +47,6 @@ TP=(throughput --quiet --batch 2> /dev/null)
 When two arguments are given, the tools measures both throughputs and calculates
 absolute and percents change.
 
-## Multithreaded mode
+## Other features
+* Multithreaded mode
+* Read and write mode
