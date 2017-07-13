@@ -50,3 +50,4 @@ absolute and percents change.
 ## Other features
 * Multithreaded mode
 * Read and write mode
+* directory, file and block device target

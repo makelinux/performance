@@ -35,7 +35,7 @@ static int quiet;
 static int batch;
 static int writing;
 static int stdev_percent = 10;
-static char * tmpname[2] = { "throughput.tmp", NULL};
+static char * tmpname[2] = { ".", NULL};
 static int count = 10;
 static gsl_rng *r;
 static int threads;
@@ -209,18 +209,29 @@ int measure_done(struct measure * m)
 
 int measure_do(struct measure * m)
 {
+	struct stat sb = {0};
 	double t;
 	int done = 0, i;
 	char fn[100];
 	int ret;
+	int flags = O_RDWR | O_DIRECT;
 
 	pthread_mutex_lock(&m->lock);
 	m->i++;
 	pthread_mutex_unlock(&m->lock);
 
-	snprintf(fn, sizeof(fn), "%s-%03d", m->dest, m->i);
+	stat(m->dest, &sb);
+	errno = 0;
+	if ((sb.st_mode & S_IFMT) == S_IFDIR)
+		flags |= O_TMPFILE;
 
-	int tmpfile = open(fn, O_CREAT | O_RDWR | O_DIRECT, 0666);
+	if (!sb.st_mode) {
+		flags |= O_CREAT;
+		snprintf(fn, sizeof(fn), "%s-%03d", m->dest, m->i);
+	} else
+		snprintf(fn, sizeof(fn), "%s", m->dest);
+
+	int tmpfile = open(fn, flags, 0660);
 	check_errno();
 	assert(tmpfile > 0);
 
@@ -256,17 +267,27 @@ int measure_do(struct measure * m)
 	}
 	close(tmpfile);
 	check_errno();
-	unlink(fn);
+	if (!sb.st_mode)
+		unlink(fn);
 	check_errno();
 	return i;
 }
 
 int measure_run(struct measure * m)
 {
+	struct stat sb = {0};
+	int lock = 0;
 	int ret;
 	int t;
 	void *res;
 
+	stat(m->dest, &sb);
+	errno = 0;
+	if ((sb.st_mode & S_IFMT) == S_IFBLK) {
+		lock = open(m->dest, O_EXCL, 0666);
+		check_errno();
+		assert(lock > 0);
+	}
 	measure_init(m);
 	pthread_t * pt;
 	pt = calloc(threads, sizeof(pthread_t));
@@ -284,7 +305,8 @@ int measure_run(struct measure * m)
 	}
 	free(pt);
 	measure_done(m);
-
+	if (lock)
+		close(lock);
 	return ret;
 }
 
