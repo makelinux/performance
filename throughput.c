@@ -119,12 +119,13 @@ int init(int argc, char *argv[])
 		case 'h':
 			printf("Throughput measurement utility\n"
 			       "Usage:\n"
-			       "\tthroughput <options> [testfile] [second test file for comparison]\n"
+			       "\tthroughput <options> [target] [second target for comparison]\n"
+			       "\n"
+			       "target - directory, file or block device.\n"
 			       "\n"
 			       "options:\n"
 			       "\n");
 			print_options_description();
-			printf("Samples:\n\nTBD\n\n");
 
 			exit(0);
 			break;

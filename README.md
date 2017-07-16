@@ -51,3 +51,7 @@ absolute and percents change.
 * Multithreaded mode
 * Read and write mode
 * directory, file and block device target
+
+## Notes
+
+* requires package libgsl-dev
