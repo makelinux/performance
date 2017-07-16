@@ -214,7 +214,7 @@ int measure_do(struct measure * m)
 	int done = 0, i;
 	char fn[100];
 	int ret;
-	int flags = O_RDWR | O_DIRECT;
+	int flags = writing ? O_RDWR : O_RDONLY  | O_DIRECT;
 
 	pthread_mutex_lock(&m->lock);
 	m->i++;
@@ -223,10 +223,10 @@ int measure_do(struct measure * m)
 	stat(m->dest, &sb);
 	errno = 0;
 	if ((sb.st_mode & S_IFMT) == S_IFDIR)
-		flags |= O_TMPFILE;
+		flags |= O_TMPFILE | O_RDWR;
 
 	if (!sb.st_mode) {
-		flags |= O_CREAT;
+		flags |= O_CREAT | O_RDWR;
 		snprintf(fn, sizeof(fn), "%s-%03d", m->dest, m->i);
 	} else
 		snprintf(fn, sizeof(fn), "%s", m->dest);
@@ -283,8 +283,8 @@ int measure_run(struct measure * m)
 
 	stat(m->dest, &sb);
 	errno = 0;
-	if ((sb.st_mode & S_IFMT) == S_IFBLK) {
-		lock = open(m->dest, O_EXCL, 0666);
+	if (writing && (sb.st_mode & S_IFMT) == S_IFBLK) {
+		lock = open(m->dest, O_EXCL, 0);
 		check_errno();
 		assert(lock > 0);
 	}
