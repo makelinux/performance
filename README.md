@@ -58,12 +58,18 @@ Folowing samples groups have similar parameters
 
 ```bash
 ./throughput
-fio --name=t --bs=128m --size=1280M --fdatasync=1 --direct=1 --numjobs=1
+fio --name=t --bs=128M --size=1280M --fdatasync=1 --direct=1 --numjobs=1
 ioping -i 0 -c 2 -s 128M -c 10  .
-sudo hdparm -t /dev/sda
 
 ./throughput --write
-fio --name=t --rw=write --bs=128m --size=1280M --fdatasync=1 --direct=1 --numjobs=1
+fio --name=t --rw=write --bs=128M --size=1280M --fdatasync=1 --direct=1 --numjobs=1
+
+./throughput --threads=10
+fio --name=test --rw=write --bs=128M --size=128M --fdatasync=1 --direct=1 --numjobs=10
+
+sudo ./throughput /dev/sda
+sudo hdparm -t /dev/sda
+
 ```
 
 ## Notes
