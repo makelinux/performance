@@ -178,7 +178,7 @@ int print_result(struct measure * m)
 	print_throughput_human_batch(stdout, "mean", m->mean);
 
 	if (m->mean_stdev != DBL_MAX)
-		batch_print(stdout, "mean_stdev=%.0f %%\n", "%.0f\n", 100 * m->mean_stdev / m->mean);
+		batch_print(stdout, "mean_stdev = %.0f %%\n", "%.0f\n", 100 * m->mean_stdev / m->mean);
 	return 0;
 }
 
@@ -350,8 +350,8 @@ int main(int argc, char *argv[])
 		double change_stdev = 100 * sqrt(pow(m[0].mean_stdev, 2) + pow(m[1].mean_stdev, 2)) / m[0].mean;
 		print_throughput_human_batch(stdout, "delta", m[1].mean - m[0].mean);
 		print_throughput_human_batch(stdout, "delta_stdev", sqrt(pow(m[0].mean_stdev, 2) + pow(m[1].mean_stdev, 2)));
-		batch_print(stdout, "change=%.0f %%\n", "%.0f\n", 100*(m[1].mean - m[0].mean) / m[0].mean);
-		batch_print(stderr, "change_stdev=%.0f %%\n", "%.0f\n", change_stdev);
+		batch_print(stdout, "change = %.0f %%\n", "%.0f\n", 100*(m[1].mean - m[0].mean) / m[0].mean);
+		batch_print(stderr, "change_stdev = %.0f %%\n", "%.0f\n", change_stdev);
 	}
 
 	free(buf);
