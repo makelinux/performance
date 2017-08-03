@@ -164,9 +164,10 @@ int print_throughput_human_batch(FILE *out, char *name, double tp)
 	int ret;
 
 	if (!batch)
-		ret = fprintf(out, "%s = %s/s\n",
+		ret = fprintf(out, "%s = %s%s/s\n",
 			name,
-			human_readable(tp * 1024, hbuf, fmt, 1, 1));
+			tp < 0 ? "-" : "",
+			human_readable(imaxabs(tp), hbuf, fmt, 1, 1));
 		else
 			ret = fprintf(out, "%.0f\n", tp);
 	fflush(out);
