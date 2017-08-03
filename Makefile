@@ -18,6 +18,6 @@ throughput: ${gnulib}/libgnu.a
 
 gl/gllib/libgnu.a:
 	@gnulib-tool --help > /dev/null || (echo Please install gnulib; false)
-	test -f gl/configure || gnulib-tool --create-testdir --dir gl human &> gl.log
+	test -f gl/configure || gnulib-tool --create-testdir --dir gl human xstrtol &> gl.log
 	cd gl; test -f Makefile || ./configure -q
 	$(MAKE) --quiet -C gl

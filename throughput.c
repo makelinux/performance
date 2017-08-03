@@ -25,13 +25,14 @@
 #include <gsl/gsl_rstat.h>
 #include <pthread.h>
 #include <human.h>
+#include <xstrtol.h>
 
 static double timespec_diff(struct timespec start, struct timespec end)
 {
 	return (double)(end.tv_sec - start.tv_sec) + 1E-9 * (end.tv_nsec - start.tv_nsec);
 }
 
-size_t size = 128 << 10; // = 128 MB, 1 = KB
+size_t size = 128 << 20;
 static int selftest;
 static int quiet;
 static int batch;
@@ -73,14 +74,14 @@ int options_init()
 	if (optnum + 1 > sizeof (options) / sizeof ((options)[0]))
 		return -1;
 	memset(options, 0, sizeof(options));
-	add_number_option(size, "size of synced block in KB, default is 128 MB");
+	add_number_option(size, "size of synced block with suffix, default is 128 MiB");
 	add_number_option(count, "number of blocks");
 	add_number_option(stdev_percent, "run till standard deviation is less than specified stdev_percent in \% from the mean value, default=10");
 	add_number_option(threads, "run number of threads concurrently");
 
 	add_flag_option("quiet", &quiet, 1, "don't print intermediate results");
 	add_flag_option("write", &writing, 1, "write mode, default is read");
-	add_flag_option("batch", &batch, 1, "print only numbers in KB");
+	add_flag_option("batch", &batch, 1, "print only numbers in KiB/s");
 	add_flag_option("selftest", &selftest, 1, "run internal test on generated data");
 	options[optnum].name = strdup("help");
 	options[optnum].val = 'h';
@@ -100,9 +101,11 @@ int print_options_description()
 
 int expand_arg(char *arg)
 {
+	long val = -1;
 	if (!arg)
 		return 0;
-	return strtol(arg, NULL, 0);
+	xstrtol(arg, NULL, 0, &val, "kKmMgG");
+	return val;
 }
 
 int init(int argc, char *argv[])
@@ -169,7 +172,7 @@ int print_throughput_human_batch(FILE *out, char *name, double tp)
 			tp < 0 ? "-" : "",
 			human_readable(imaxabs(tp), hbuf, fmt, 1, 1));
 		else
-			ret = fprintf(out, "%.0f\n", tp);
+			ret = fprintf(out, "%.0f\n", tp / 1024); // in KiB/s
 	fflush(out);
 	return ret;
 }
@@ -191,17 +194,17 @@ int run_sample(int tmpfile, double *t)
 	int ret;
 
 	if (selftest) {
-		// simulate TP = 100 MB/s, stdev = 10MB/s
-		*t = size / (1E5 + gsl_ran_gaussian(r, 1E4));
-		return size << 10;
+		// simulate TP = 100 MiB/s, stdev = 10MiB/s
+		*t = size / ((100 << 20) + gsl_ran_gaussian(r, 10 << 20));
+		return size;
 	}
 
 	clock_gettime(CLOCK_MONOTONIC, &prev);
 	if (writing)
-		ret = pwrite(tmpfile, buf, size << 10, 0);
+		ret = pwrite(tmpfile, buf, size, 0);
 	else
-		ret = pread(tmpfile, buf, size << 10, 0);
-	assert(ret == size << 10);
+		ret = pread(tmpfile, buf, size, 0);
+	assert(ret == size);
 	check_errno();
 	fdatasync(tmpfile); // do sync explicitly instead O_DSYNC
 	check_errno();
@@ -257,24 +260,24 @@ int measure_do(struct measure *m)
 	assert(tmpfile > 0);
 
 	// write the same data to file, to preserve it
-	ret = pread(tmpfile, buf, size << 10, 0);
+	ret = pread(tmpfile, buf, size, 0);
 	// if target file is too short, enlarge it
-	if (ret < size << 10)
-		pwrite(tmpfile, buf, size << 10, 0);
+	if (ret < size)
+		pwrite(tmpfile, buf, size, 0);
 
 	for (i = 0; !done; i++) {
-		double kbps_cur;
+		double Bps_cur;
 
 		ret = run_sample(tmpfile, &t);
-		assert(ret == (int)(size << 10));
+		assert(ret == (int)(size));
 
 		pthread_mutex_lock(&m->lock);
 		m->T += t;
-		kbps_cur = size / t;
-		gsl_rstat_add(kbps_cur, m->rstat);
+		Bps_cur = size / t;
+		gsl_rstat_add(Bps_cur, m->rstat);
 		m->mean = (threads ? : 1) * gsl_rstat_n(m->rstat) * size / m->T;
 		if (!quiet)
-			print_throughput_human_batch(stdout, "cur", kbps_cur);
+			print_throughput_human_batch(stdout, "cur", Bps_cur);
 		if (count == 1)
 			done = 1;
 		pthread_mutex_unlock(&m->lock);
@@ -336,9 +339,9 @@ int main(int argc, char *argv[])
 	struct measure m[2] = {{0,},};
 
 	init(argc, argv);
-	buf = aligned_alloc(512, size << 10);
+	buf = aligned_alloc(512, size);
 	assert(buf);
-	memset(buf, 0, size << 10);
+	memset(buf, 0, size);
 	m[0].dest = tmpname[0];
 	measure_run(&m[0]);
 	if (!tmpname[1]) {
