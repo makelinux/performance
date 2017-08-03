@@ -37,7 +37,7 @@ static int quiet;
 static int batch;
 static int writing;
 static int stdev_percent = 10;
-static char * tmpname[2] = { ".", NULL};
+static char *tmpname[2] = { ".", NULL};
 static int count = 10;
 static gsl_rng *r;
 static int threads;
@@ -65,7 +65,7 @@ do { \
 } while (0)
 
 static struct option options[100];
-static char * description[100];
+static char *description[100];
 static size_t optnum;
 
 int options_init()
@@ -148,7 +148,7 @@ int init(int argc, char *argv[])
 
 struct measure {
 	int i;
-	char * dest;
+	char *dest;
 	double mean;
 	double mean_stdev;
 	gsl_rstat_workspace *rstat;
@@ -173,7 +173,7 @@ int print_throughput_human_batch(FILE *out, char *name, double tp)
 	return ret;
 }
 
-int print_result(struct measure * m)
+int print_result(struct measure *m)
 {
 	print_throughput_human_batch(stdout, "mean", m->mean);
 
@@ -182,9 +182,9 @@ int print_result(struct measure * m)
 	return 0;
 }
 
-static void * buf;
+static void *buf;
 
-int run_sample(int tmpfile, double * t)
+int run_sample(int tmpfile, double *t)
 {
 	struct timespec prev, now;
 	int ret;
@@ -209,7 +209,7 @@ int run_sample(int tmpfile, double * t)
 	return ret;
 }
 
-int measure_init(struct measure * m)
+int measure_init(struct measure *m)
 {
 	m->mean = 0;
 	m->mean_stdev = DBL_MAX;
@@ -219,7 +219,7 @@ int measure_init(struct measure * m)
 	return 0;
 }
 
-int measure_done(struct measure * m)
+int measure_done(struct measure *m)
 {
 	if (selftest && !quiet && !batch)
 		print_throughput_human_batch(stdout, "stdev", gsl_rstat_sd(m->rstat));
@@ -227,7 +227,7 @@ int measure_done(struct measure * m)
 	return 0;
 }
 
-int measure_do(struct measure * m)
+int measure_do(struct measure *m)
 {
 	struct stat sb = {0};
 	double t;
@@ -293,7 +293,7 @@ int measure_do(struct measure * m)
 	return i;
 }
 
-int measure_run(struct measure * m)
+int measure_run(struct measure *m)
 {
 	struct stat sb = {0};
 	int lock = 0;
@@ -309,7 +309,7 @@ int measure_run(struct measure * m)
 		assert(lock > 0);
 	}
 	measure_init(m);
-	pthread_t * pt;
+	pthread_t *pt;
 	pt = calloc(threads, sizeof(pthread_t));
 	if (!threads)
 		ret = measure_do(m);
