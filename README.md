@@ -28,7 +28,7 @@ Intermediate and final standard deviation are printed to stderr to
 simplify usage of throughput results.
 
 Option --quiet suppresses intermediate data and gives only final results.
-Option --batch prints only numbers in KB/s, ready for integer arithmetic
+Option --batch prints only numbers in KiB/s, ready for integer arithmetic
 
 Sample scripting usage:
 ```
@@ -74,4 +74,4 @@ sudo hdparm -t /dev/sda
 
 ## Notes
 
-* requires package libgsl-dev
+* requires packages libgsl-dev and gnulib

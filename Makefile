@@ -1,14 +1,23 @@
 targets=throughput
+gnulib=gl/gllib
 
 all: ${targets}
 
-LDLIBS+=-lgsl -lgslcblas -lm -lpthread
+LDLIBS+=-lgsl -lgslcblas -lm -lpthread -L${gnulib} -lgnu
 
-CFLAGS+=-g -I. -Wall
+CFLAGS+=-g -I. -Wall -I${gnulib} -I${gnulib}/..
 
 install:
 	mkdir -p ${DESTDIR}/usr/bin
 	cp ${targets} ${DESTDIR}/usr/bin
 
 clean:
-	rm -f ${targets}
+	rm -rf ${targets} gl/gllib
+
+throughput: ${gnulib}/libgnu.a
+
+gl/gllib/libgnu.a:
+	@gnulib-tool --help > /dev/null || (echo Please install gnulib; false)
+	test -f gl/configure || gnulib-tool --create-testdir --dir gl human &> gl.log
+	cd gl; test -f Makefile || ./configure -q
+	$(MAKE) --quiet -C gl

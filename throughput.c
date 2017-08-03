@@ -1,4 +1,5 @@
 #define _GNU_SOURCE
+#include <config.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/param.h>
@@ -23,6 +24,7 @@
 #include <gsl/gsl_fit.h>
 #include <gsl/gsl_rstat.h>
 #include <pthread.h>
+#include <human.h>
 
 static double timespec_diff(struct timespec start, struct timespec end)
 {
@@ -154,9 +156,26 @@ struct measure {
 	pthread_mutex_t lock;
 };
 
+int print_throughput_human_batch(FILE *out, char *name, double tp)
+{
+	char hbuf[LONGEST_HUMAN_READABLE + 1];
+	int fmt = human_autoscale | human_round_to_nearest | human_base_1024 |
+		human_space_before_unit | human_SI | human_B;
+	int ret;
+
+	if (!batch)
+		ret = fprintf(out, "%s = %s/s\n",
+			name,
+			human_readable(tp * 1024, hbuf, fmt, 1, 1));
+		else
+			ret = fprintf(out, "%.0f\n", tp);
+	fflush(out);
+	return ret;
+}
+
 int print_result(struct measure * m)
 {
-	batch_print(stdout, "mean=%.0f KB/s\n", "%.0f\n", m->mean);
+	print_throughput_human_batch(stdout, "mean", m->mean);
 
 	if (m->mean_stdev != DBL_MAX)
 		batch_print(stdout, "mean_stdev=%.0f %%\n", "%.0f\n", 100 * m->mean_stdev / m->mean);
@@ -203,7 +222,7 @@ int measure_init(struct measure * m)
 int measure_done(struct measure * m)
 {
 	if (selftest && !quiet && !batch)
-		printf("stdev=%.0f KB/s\n", gsl_rstat_sd(m->rstat));
+		print_throughput_human_batch(stdout, "stdev", gsl_rstat_sd(m->rstat));
 	gsl_rstat_free(m->rstat);
 	return 0;
 }
@@ -254,7 +273,7 @@ int measure_do(struct measure * m)
 		gsl_rstat_add(kbps_cur, m->rstat);
 		m->mean = (threads ? : 1) * gsl_rstat_n(m->rstat) * size / m->T;
 		if (!quiet)
-			batch_print(stdout, "cur=%.0f KB/s\n", "%.0f\n", kbps_cur);
+			print_throughput_human_batch(stdout, "cur", kbps_cur);
 		if (count == 1)
 			done = 1;
 		pthread_mutex_unlock(&m->lock);
@@ -329,8 +348,8 @@ int main(int argc, char *argv[])
 			printf("\n");
 		measure_run(&m[1]);
 		double change_stdev = 100 * sqrt(pow(m[0].mean_stdev, 2) + pow(m[1].mean_stdev, 2)) / m[0].mean;
-		batch_print(stdout, "delta=%.0f KB/s\n", "%.0f\n", m[1].mean - m[0].mean);
-		batch_print(stderr, "delta_stdev=%.0f KB/s\n", "%.0f\n", sqrt(pow(m[0].mean_stdev, 2) + pow(m[1].mean_stdev, 2)));
+		print_throughput_human_batch(stdout, "delta", m[1].mean - m[0].mean);
+		print_throughput_human_batch(stdout, "delta_stdev", sqrt(pow(m[0].mean_stdev, 2) + pow(m[1].mean_stdev, 2)));
 		batch_print(stdout, "change=%.0f %%\n", "%.0f\n", 100*(m[1].mean - m[0].mean) / m[0].mean);
 		batch_print(stderr, "change_stdev=%.0f %%\n", "%.0f\n", change_stdev);
 	}
