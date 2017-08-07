@@ -1,5 +1,5 @@
 targets=throughput
-gnulib=gl/gllib
+gnulib?=gl/gllib
 
 all: ${targets}
 
@@ -12,7 +12,7 @@ install:
 	cp ${targets} ${DESTDIR}/usr/bin
 
 clean:
-	rm -rf ${targets} gl/gllib
+	rm -rf ${targets} gl
 
 throughput: ${gnulib}/libgnu.a
 
