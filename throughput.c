@@ -161,18 +161,19 @@ struct measure {
 
 int print_throughput_human_batch(FILE *out, char *name, double tp)
 {
-	char hbuf[LONGEST_HUMAN_READABLE + 1];
-	int fmt = human_autoscale | human_round_to_nearest | human_base_1024 |
-		human_space_before_unit | human_SI | human_B;
 	int ret;
 
-	if (!batch)
+	if (!batch) {
+		char hbuf[LONGEST_HUMAN_READABLE + 1];
+		int fmt = human_autoscale | human_round_to_nearest | human_base_1024 |
+			human_space_before_unit | human_SI | human_B;
+
 		ret = fprintf(out, "%s = %s%s/s\n",
-			name,
-			tp < 0 ? "-" : "",
-			human_readable(imaxabs(tp), hbuf, fmt, 1, 1));
-		else
-			ret = fprintf(out, "%.0f\n", tp / 1024); // in KiB/s
+			      name,
+			      tp < 0 ? "-" : "",
+			      human_readable(imaxabs(tp), hbuf, fmt, 1, 1));
+	} else
+		ret = fprintf(out, "%.0f\n", tp / 1024); // in KiB/s
 	fflush(out);
 	return ret;
 }
@@ -302,7 +303,6 @@ int measure_run(struct measure *m)
 	struct stat sb = {0};
 	int lock = 0;
 	int ret;
-	int t;
 	void *res;
 
 	stat(m->dest, &sb);
@@ -318,6 +318,8 @@ int measure_run(struct measure *m)
 	if (!threads)
 		ret = measure_do(m);
 	else {
+		int t;
+
 		for (t = 0; t < threads; t++) {
 			errno = pthread_create(&pt[t], NULL, (void*)&measure_do, m);
 			check_errno();
