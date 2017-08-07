@@ -204,7 +204,7 @@ int run_sample(int tmpfile, double *t)
 		ret = pwrite(tmpfile, buf, size, 0);
 	else
 		ret = pread(tmpfile, buf, size, 0);
-	assert(ret == size);
+	assert(ret == (signed)size);
 	check_errno();
 	fdatasync(tmpfile); // do sync explicitly instead O_DSYNC
 	check_errno();
@@ -262,7 +262,7 @@ int measure_do(struct measure *m)
 	// write the same data to file, to preserve it
 	ret = pread(tmpfile, buf, size, 0);
 	// if target file is too short, enlarge it
-	if (ret < size)
+	if (ret < (signed)size)
 		pwrite(tmpfile, buf, size, 0);
 
 	for (i = 0; !done; i++) {
