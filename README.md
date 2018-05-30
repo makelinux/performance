@@ -1,13 +1,13 @@
 # Performance and throughput measurement utility
 
 Disk and FS throughput measurement utility with accuracy
-(standard deviation) calculation
+(standard deviation) calculation.
 
 Motivation:
-* dd is too simple and not scripting friendly
-* fio is too complex and not scripting friendly too
+* dd is too simple and not script friendly.
+* fio is too complex and not script friendly.
 * The accuracy of results is unknown.
-* And it is need to waste a lot of time to run utilities to achieve reliable results.
+* •	Utilities must be run multiple times to achieve reliable results.
 
 **Features:**
 
@@ -17,10 +17,9 @@ Simple command line interface, simple usage and simple implementation on C.
 
 ## Reliability
 
-Calculates standard deviation of mean with function gsl_rstat_sd_mean from
-GNU Scientific Library. The measurements continues till standard deviation is
-less than specified stdev_percent in percents from the mean value.
-The default value of stdev_percent is 10%.
+Calculates standard deviation of mean with function gsl_rstat_sd_mean from GNU Scientific Library. 
+The measurements continue until standard deviation is less than specified stdev_percent as a percentage 
+from the mean value. The default value of stdev_percent is 10%.
 
 ## Batch scripting friendly
 
@@ -54,7 +53,7 @@ absolute and percents change.
 
 ## Compare usage with other tools
 
-Folowing samples groups have similar parameters
+The following sample groups have similar parameters:
 
 ```bash
 ./throughput
