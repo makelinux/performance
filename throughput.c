@@ -183,7 +183,7 @@ int print_result(struct measure *m)
 	print_throughput_human_batch(stdout, "mean", m->mean);
 
 	if (m->mean_stdev != DBL_MAX)
-		batch_print(stdout, "mean_stdev = %.0f %%\n", "%.0f\n", 100 * m->mean_stdev / m->mean);
+		batch_print(stderr, "mean_stdev = %.0f %%\n", "%.0f\n", 100 * m->mean_stdev / m->mean);
 	return 0;
 }
 

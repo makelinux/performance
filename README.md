@@ -32,14 +32,18 @@ Option --batch prints only numbers in KiB/s, ready for integer arithmetic
 Sample scripting usage:
 ```
 a=($(throughput --quiet --batch 2>&1))
-echo "Overall (mean) throughput: ${a[1]}"
-echo "Standard deviation of mean: ${a[0]}"
+echo "Overall (mean) throughput: ${a[0]}"
+echo "Standard deviation of mean: ${a[1]}"
 ```
 or
 
 ```
 TP=(throughput --quiet --batch 2> /dev/null)
 ```
+
+Integration with git bisect:
+
+test $(throughput --batch --quiet 2> /dev/null) -gt 100 && git bisect good || git bisect bad
 
 ## Comparison mode
 
