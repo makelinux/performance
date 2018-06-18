@@ -7,7 +7,7 @@ Motivation
 * dd is too simple and not script friendly.
 * fio is too complex and not script friendly.
 * The accuracy of results is unknown.
-* •	Utilities must be run multiple times to achieve reliable results.
+* Utilities must be run multiple times to achieve reliable results.
 
 **Features:**
 
