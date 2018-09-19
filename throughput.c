@@ -38,7 +38,8 @@ static int quiet;
 static int batch;
 static int writing;
 static int stdev_percent = 10;
-static char *tmpname[2] = { ".", NULL};
+static char *tmpname[2] = { ".", NULL };
+
 static int count = 10;
 static gsl_rng *r;
 static int threads;
@@ -71,12 +72,13 @@ static size_t optnum;
 
 int options_init()
 {
-	if (optnum + 1 > sizeof (options) / sizeof ((options)[0]))
+	if (optnum + 1 > sizeof(options) / sizeof((options)[0]))
 		return -1;
 	memset(options, 0, sizeof(options));
 	add_number_option(size, "size of synced block with suffix, default is 128 MiB");
 	add_number_option(count, "number of blocks");
-	add_number_option(stdev_percent, "run till standard deviation is less than specified stdev_percent in \% from the mean value, default=10");
+	add_number_option(stdev_percent,
+			  "run till standard deviation is less than specified stdev_percent in \% from the mean value, default=10");
 	add_number_option(threads, "run number of threads concurrently");
 
 	add_flag_option("quiet", &quiet, 1, "don't print intermediate results");
@@ -94,8 +96,8 @@ int print_options_description()
 {
 	size_t i;
 
-	for (i = 0; i < optnum; i ++)
-		printf("\t--%s %s \n\t\t%s\n\n", options[i].name, options[i].has_arg ?"<n>": "", description[i]);
+	for (i = 0; i < optnum; i++)
+		printf("\t--%s %s \n\t\t%s\n\n", options[i].name, options[i].has_arg ? "<n>" : "", description[i]);
 	return 0;
 }
 
@@ -166,7 +168,7 @@ int print_throughput_human_batch(FILE *out, char *name, double tp)
 	if (!batch) {
 		char hbuf[LONGEST_HUMAN_READABLE + 1];
 		int fmt = human_autoscale | human_round_to_nearest | human_base_1024 |
-			human_space_before_unit | human_SI | human_B;
+		    human_space_before_unit | human_SI | human_B;
 
 		ret = fprintf(out, "%s = %s%s/s\n",
 			      name,
@@ -234,12 +236,12 @@ int measure_done(struct measure *m)
 
 int measure_do(struct measure *m)
 {
-	struct stat sb = {0};
+	struct stat sb = { 0 };
 	double t;
 	int done = 0, i;
 	char fn[100];
 	int ret;
-	int flags = writing ? O_RDWR : O_RDONLY  | O_DIRECT;
+	int flags = writing ? O_RDWR : O_RDONLY | O_DIRECT;
 
 	pthread_mutex_lock(&m->lock);
 	m->i++;
@@ -300,7 +302,7 @@ int measure_do(struct measure *m)
 
 int measure_run(struct measure *m)
 {
-	struct stat sb = {0};
+	struct stat sb = { 0 };
 	int lock = 0;
 	int ret;
 	void *res;
@@ -321,7 +323,7 @@ int measure_run(struct measure *m)
 		int t;
 
 		for (t = 0; t < threads; t++) {
-			errno = pthread_create(&pt[t], NULL, (void*)&measure_do, m);
+			errno = pthread_create(&pt[t], NULL, (void *)&measure_do, m);
 			check_errno();
 		}
 		for (t = 0; t < threads; t++) {
@@ -338,7 +340,7 @@ int measure_run(struct measure *m)
 
 int main(int argc, char *argv[])
 {
-	struct measure m[2] = {{0,},};
+	struct measure m[2] = { {0,}, };
 
 	init(argc, argv);
 	buf = aligned_alloc(512, size);
@@ -355,8 +357,9 @@ int main(int argc, char *argv[])
 		measure_run(&m[1]);
 		double change_stdev = 100 * sqrt(pow(m[0].mean_stdev, 2) + pow(m[1].mean_stdev, 2)) / m[0].mean;
 		print_throughput_human_batch(stdout, "delta", m[1].mean - m[0].mean);
-		print_throughput_human_batch(stdout, "delta_stdev", sqrt(pow(m[0].mean_stdev, 2) + pow(m[1].mean_stdev, 2)));
-		batch_print(stdout, "change = %.0f %%\n", "%.0f\n", 100*(m[1].mean - m[0].mean) / m[0].mean);
+		print_throughput_human_batch(stdout, "delta_stdev",
+					     sqrt(pow(m[0].mean_stdev, 2) + pow(m[1].mean_stdev, 2)));
+		batch_print(stdout, "change = %.0f %%\n", "%.0f\n", 100 * (m[1].mean - m[0].mean) / m[0].mean);
 		batch_print(stderr, "change_stdev = %.0f %%\n", "%.0f\n", change_stdev);
 	}
 
